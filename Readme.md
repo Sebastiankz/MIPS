@@ -1,17 +1,18 @@
 MIPS Visual Simulator (Single Cycle)
 
-
-A javascript based MIPS simulator that can simulate the MIPS assembly code. 
+A javascript based MIPS simulator that can simulate the MIPS assembly code.
 
 To run on dev mode, run the following command
+
 ```bash
  cd app
  nmp install
- npm run dev 
+ npm run dev
 ```
 
 To deply the app, run the following command
-```bash
+
+````bash
  docker build -t mipsvisualsimisinglei .
  docker run -d -it -p 80:3000 --restart unless-stopped --name mipsvisualsimisingle-app mipsvisualsimisinglei
 
@@ -27,4 +28,4 @@ add t1 t0 t0
 add t2 t1 t1
 add t3 t2 t2
 add t4 t3 t3
-```
+````
