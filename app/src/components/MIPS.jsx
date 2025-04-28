@@ -56,6 +56,7 @@ const MIPS = () => {
   const [history, setHistory] = useState([]);
   const instructions = mipsInput.trim().split("\n");
   const currentInstruction = instructions[PC] || "";
+  const [errorMessage, setErrorMessage] = useState("");
 
   const updateTables = (newRegisters, newMemory) => {
     setRegisters(newRegisters);
@@ -79,7 +80,8 @@ const MIPS = () => {
         hexInstructions[pc],
         newRegisters,
         newMemory,
-        pc
+        pc,
+        setErrorMessage
       );
       if (newPC !== undefined) {
         pc = newPC;
@@ -105,7 +107,8 @@ const MIPS = () => {
       instructions[PC],
       newRegisters,
       newMemory,
-      PC
+      PC,
+      setErrorMessage
     );
 
     if (newPC !== undefined) {
@@ -141,6 +144,13 @@ const MIPS = () => {
 
   return (
     <div>
+      {errorMessage && (
+        <div
+          style={{ color: "red", textAlign: "center", marginBottom: "10px" }}
+        >
+          {errorMessage}
+        </div>
+      )}
       <div className="row-container">
         <DropArea setMipsInput={setMipsInput} setHexInput={setHexInput} />
         <textarea
@@ -178,7 +188,13 @@ const MIPS = () => {
   );
 };
 
-function executeMIPSInstruction(instruction, registers, memory, PC) {
+function executeMIPSInstruction(
+  instruction,
+  registers,
+  memory,
+  PC,
+  setErrorMessage
+) {
   if (!instruction.trim()) return;
 
   const [op, ...operandsRaw] = instruction
@@ -188,14 +204,40 @@ function executeMIPSInstruction(instruction, registers, memory, PC) {
   const operands = operandsRaw.map((op) => op.trim());
 
   switch (op) {
-    // R-Type instructions
-    case "add":
+    case "add": {
+      const [rd, rs, rt] = operands;
+      const result = (registers[rs] || 0) + (registers[rt] || 0);
+      if (checkOverflow(result)) {
+        setErrorMessage(
+          `Overflow detected during ADD operation at instruction ${PC}.`
+        );
+        console.error("Overflow detected in addition operation.");
+        registers[rd] = 0;
+      } else {
+        registers[rd] = result;
+      }
+      break;
+    }
     case "addu": {
       const [rd, rs, rt] = operands;
       registers[rd] = (registers[rs] || 0) + (registers[rt] || 0);
       break;
     }
-    case "sub":
+    case "sub": {
+      const [rd, rs, rt] = operands;
+      const result = (registers[rs] || 0) - (registers[rt] || 0);
+      if (checkOverflow(result)) {
+        setErrorMessage(
+          `Overflow detected during SUB operation at instruction ${PC}.`
+        );
+        console.error("Overflow detected in subtraction operation.");
+        registers[rd] = 0;
+        break;
+      } else {
+        registers[rd] = result;
+        break;
+      }
+    }
     case "subu": {
       const [rd, rs, rt] = operands;
       registers[rd] = (registers[rs] || 0) - (registers[rt] || 0);
@@ -274,7 +316,21 @@ function executeMIPSInstruction(instruction, registers, memory, PC) {
       return registers[rs] || 0;
     }
 
-    case "addi":
+    case "addi": {
+      const [rt, rs, immediate] = operands;
+      const result = (registers[rs] || 0) + parseImmediate(immediate);
+      if (checkOverflow(result)) {
+        setErrorMessage(
+          `Overflow detected during ADDI operation at instruction ${PC}.`
+        );
+        console.error("Overflow detected in ADDI operation.");
+        registers[rt] = 0; // opcional: podrías no modificarlo si prefieres
+        break;
+      } else {
+        registers[rt] = result;
+        break;
+      }
+    }
     case "addiu": {
       const [rt, rs, immediate] = operands;
       registers[rt] = (registers[rs] || 0) + parseImmediate(immediate);
