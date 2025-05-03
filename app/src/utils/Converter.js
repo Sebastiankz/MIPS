@@ -26,26 +26,34 @@ export function hexToBinary(hex) {
 
 // Mapa de opcodes
 const opcodeMap = {
-  // R-Type (opcode = 000000)
   add: "000000",
   addu: "000000",
   sub: "000000",
   subu: "000000",
+  slt: "000000",
+  sltu: "000000",
+  and: "000000",
+  or: "000000",
+  nor: "000000",
+  xor: "000000",
+  sll: "000000",
+  srl: "000000",
+  sra: "000000",
+  jr: "000000",
 
   // I-Type
   addi: "001000",
   addiu: "001001",
+  slti: "001010",
+  sltiu: "001011",
+  andi: "001100",
+  ori: "001101",
+  xori: "001110",
+  lui: "001111",
   lw: "100011",
-  lb: "100000",   // Nueva instrucción
-  lbu: "100100",  // Nueva instrucción
   sw: "101011",
-  sb: "101000",   // Nueva instrucción
   beq: "000100",
   bne: "000101",
-  blez: "000110", // Nueva instrucción
-  bgtz: "000111", // Nueva instrucción
-  bltz: "000001", // subop=00000
-  bgez: "000001", // subop=00001
 
   // J-Type
   j: "000010",
@@ -58,6 +66,16 @@ const funcMap = {
   addu: "100001",
   sub: "100010",
   subu: "100011",
+  slt: "101010",
+  sltu: "101011",
+  and: "100100",
+  or: "100101",
+  nor: "100111",
+  xor: "100110",
+  sll: "000000",
+  srl: "000010",
+  sra: "000011",
+  jr: "001000",
 };
 
 // Mapa de registros
@@ -115,19 +133,26 @@ export function translateInstructionToHex(instruction) {
     const shamt = "00000";
     const funct = funcMap[mnemonic];
 
-    binaryInstruction = opcode + rs + rt + rd + shamt + funct;
+    if (["sll", "srl", "sra"].includes(mnemonic)) {
+      shamt = parseInt(parts[3]).toString(2).padStart(5, "0");
+      binaryInstruction = opcode + "00000" + rt + rd + shamt + funct;
+    } else {
+      binaryInstruction = opcode + rs + rt + rd + shamt + funct;
+    }
   } else if (["001000", "001001"].includes(opcode)) {
     // I-Type immediate (addi, addiu)
     const rt = regMap[parts[1]];
     const rs = regMap[parts[2]];
     let immediate = parseInt(parts[3]);
 
-    if (!rs || !rt || isNaN(immediate))
-      return "Invalid Immediate Instruction";
+    if (!rs || !rt || isNaN(immediate)) return "Invalid Immediate Instruction";
 
     immediate = immediate & 0xffff;
-    binaryInstruction = opcode + rs + rt + immediate.toString(2).padStart(16, "0");
-  } else if (["100011", "100000", "100100", "101011", "101000"].includes(opcode)) {
+    binaryInstruction =
+      opcode + rs + rt + immediate.toString(2).padStart(16, "0");
+  } else if (
+    ["100011", "100000", "100100", "101011", "101000"].includes(opcode)
+  ) {
     // I-Type load/store (lw, lb, lbu, sw, sb)
     const rt = regMap[parts[1]];
     const match = parts[2].match(/(-?\d+)\((\w+)\)/);
@@ -137,7 +162,8 @@ export function translateInstructionToHex(instruction) {
     const immediate = parseInt(match[1]) & 0xffff;
     const rs = regMap[match[2]];
 
-    binaryInstruction = opcode + rs + rt + immediate.toString(2).padStart(16, "0");
+    binaryInstruction =
+      opcode + rs + rt + immediate.toString(2).padStart(16, "0");
   } else if (["000100", "000101"].includes(opcode)) {
     // I-Type branch con dos registros (beq, bne)
     const rs = regMap[parts[1]];
@@ -162,17 +188,18 @@ export function translateInstructionToHex(instruction) {
     // I-Type branch con códigos especiales (bltz, bgez)
     const rs = regMap[parts[1]];
     let rtCode = "00000"; // BLTZ
-    
+
     if (mnemonic === "bgez") {
       rtCode = "00001"; // BGEZ
     }
-    
+
     let offset = parseInt(parts[2]);
 
     if (!rs || isNaN(offset)) return "Invalid Branch Instruction";
 
     offset = offset & 0xffff;
-    binaryInstruction = opcode + rs + rtCode + offset.toString(2).padStart(16, "0");
+    binaryInstruction =
+      opcode + rs + rtCode + offset.toString(2).padStart(16, "0");
   } else if (["000010", "000011"].includes(opcode)) {
     // J-Type (j, jal)
     let address = parseInt(parts[1]);
@@ -210,6 +237,10 @@ export function translateInstructionToMIPS(hexInstruction) {
 
     if (!mnemonic) return "Unknown R-Type Instruction";
 
+    if (["sll", "srl", "sra"].includes(mnemonic)) {
+      return `${mnemonic} ${getReg(rd)}, ${getReg(rt)}, ${parseInt(shamt, 2)}`;
+    }
+
     // Normal R-Type
     return `${mnemonic} ${getReg(rd)}, ${getReg(rs)}, ${getReg(rt)}`;
   } else if (["001000", "001001"].includes(opcode)) {
@@ -226,7 +257,9 @@ export function translateInstructionToMIPS(hexInstruction) {
 
     // Normal I-Type
     return `${mnemonic} ${getReg(rt)}, ${getReg(rs)}, ${immediate}`;
-  } else if (["100011", "100000", "100100", "101011", "101000"].includes(opcode)) {
+  } else if (
+    ["100011", "100000", "100100", "101011", "101000"].includes(opcode)
+  ) {
     // I-Type Load/Store (lw, lb, lbu, sw, sb)
     const rs = binaryInstruction.slice(6, 11);
     const rt = binaryInstruction.slice(11, 16);
@@ -271,7 +304,7 @@ export function translateInstructionToMIPS(hexInstruction) {
     const offset = parseInt(binaryInstruction.slice(16, 32), 2);
 
     let mnemonic = "bltz"; // Por defecto bltz (rt=00000)
-    
+
     if (rtCode === "00001") {
       mnemonic = "bgez";
     }

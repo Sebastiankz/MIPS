@@ -8,44 +8,44 @@ import swImage from "../images/SW.png";
 import beqImage from "../images/BEQ.png";
 import bneImage from "../images/BNE.png";
 import jumpImage from "../images/JUMP.png";
-import lbImage from "../images/LW.png";   // Necesitarás crear esta imagen
-import sbImage from "../images/SW.png";   // Necesitarás crear esta imagen
-import blezImage from "../images/BEQ.png"; // Necesitarás crear esta imagen
-import bgezImage from "../images/BEQ.png"; // Necesitarás crear esta imagen
-import bgtzImage from "../images/BNE.png"; // Necesitarás crear esta imagen
-import bltzImage from "../images/BNE.png"; // Necesitarás crear esta imagen
 
 const instructionImages = {
-  // Operaciones aritméticas (usar ADD image)
   add: addImage,
   addu: addImage,
   sub: addImage,
   subu: addImage,
+  and: addImage,
+  or: addImage,
+  nor: addImage,
+  xor: addImage,
+  slt: addImage,
+  sltu: addImage,
 
-  // Operaciones inmediatas (usar ADDI image)
   addi: addiImage,
   addiu: addiImage,
+  andi: addiImage,
+  ori: addiImage,
+  xori: addiImage,
+  slti: addiImage,
+  sltiu: addiImage,
+  lui: addiImage,
 
-  // Operaciones de memoria - word
   lw: lwImage,
+  lb: lwImage,
+  lbu: lwImage,
+
   sw: swImage,
-  
-  // Operaciones de memoria - byte (nuevas)
-  lb: lbImage || lwImage, // Usa LW como fallback si no existe la imagen
-  lbu: lbImage || lwImage,
-  sb: sbImage || swImage, // Usa SW como fallback si no existe la imagen
+  sb: swImage,
+  sb: swImage,
 
-  // Saltos condicionales
   beq: beqImage,
-  bne: bneImage,
-  
-  // Nuevos saltos condicionales
-  blez: blezImage || beqImage, // Usa BEQ como fallback si no existe la imagen
-  bgez: bgezImage || beqImage,
-  bgtz: bgtzImage || beqImage,
-  bltz: bltzImage || beqImage,
 
-  // Saltos incondicionales
+  bne: bneImage,
+  blez: bneImage,
+  bgez: bneImage,
+  bgtz: bneImage,
+  bltz: bneImage,
+
   j: jumpImage,
   jal: jumpImage,
 };

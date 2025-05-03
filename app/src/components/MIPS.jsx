@@ -545,6 +545,130 @@ function executeMIPSInstruction(
       registers["ra"] = PC + 1; // Save next instruction in $ra
       return parseImmediate(address);
     }
+    case "slt": {
+      const [rd, rs, rt] = operands;
+      registers[rd] = registers[rs] < registers[rt] ? 1 : 0;
+      console.log(
+        `SLT: ${rs}(${registers[rs]}) < ${rt}(${registers[rt]}) = ${registers[rd]}, guardado en ${rd}`
+      );
+      break;
+    }
+    case "sltu": {
+      const [rd, rs, rt] = operands;
+      registers[rd] = unsigned(registers[rs]) < unsigned(registers[rt]) ? 1 : 0;
+      console.log(
+        `SLTU: ${rs}(${registers[rs]}) < ${rt}(${registers[rt]}) = ${registers[rd]}, guardado en ${rd}`
+      );
+      break;
+    }
+    case "and": {
+      const [rd, rs, rt] = operands;
+      registers[rd] = registers[rs] & registers[rt];
+      console.log(
+        `AND: ${rs}(${registers[rs]}) & ${rt}(${registers[rt]}) = ${registers[rd]}, guardado en ${rd}`
+      );
+      break;
+    }
+    case "or": {
+      const [rd, rs, rt] = operands;
+      registers[rd] = registers[rs] | registers[rt];
+      console.log(
+        `OR: ${rs}(${registers[rs]}) | ${rt}(${registers[rt]}) = ${registers[rd]}, guardado en ${rd}`
+      );
+      break;
+    }
+    case "nor": {
+      const [rd, rs, rt] = operands;
+      registers[rd] = ~(registers[rs] | registers[rt]);
+      console.log(
+        `NOR: ~(${rs}(${registers[rs]}) | ${rt}(${registers[rt]})) = ${registers[rd]}, guardado en ${rd}`
+      );
+      break;
+    }
+    case "xor": {
+      const [rd, rs, rt] = operands;
+      registers[rd] = registers[rs] ^ registers[rt];
+      console.log(
+        `XOR: ${rs}(${registers[rs]}) ^ ${rt}(${registers[rt]}) = ${registers[rd]}, guardado en ${rd}`
+      );
+      break;
+    }
+    case "sll": {
+      const [rd, rt, shamt] = operands;
+      registers[rd] = registers[rt] << parseInt(shamt);
+      console.log(
+        `SLL: ${rt}(${registers[rt]}) << ${shamt} = ${registers[rd]}, guardado en ${rd}`
+      );
+      break;
+    }
+    case "srl": {
+      const [rd, rt, shamt] = operands;
+      registers[rd] = registers[rt] >>> parseInt(shamt);
+      console.log(
+        `SRL: ${rt}(${registers[rt]}) >>> ${shamt} = ${registers[rd]}, guardado en ${rd}`
+      );
+      break;
+    }
+    case "sra": {
+      const [rd, rt, shamt] = operands;
+      registers[rd] = registers[rt] >> parseInt(shamt);
+      console.log(
+        `SRA: ${rt}(${registers[rt]}) >> ${shamt} = ${registers[rd]}, guardado en ${rd}`
+      );
+      break;
+    }
+    case "jr": {
+      const [rs] = operands;
+      console.log(`JR: Saltando a dirección ${registers[rs]}`);
+      return registers[rs];
+    }
+    case "slti": {
+      const [rt, rs, immediate] = operands;
+      registers[rt] = registers[rs] < parseImmediate(immediate) ? 1 : 0;
+      console.log(
+        `SLTI: ${rs}(${registers[rs]}) < ${immediate} = ${registers[rt]}, guardado en ${rt}`
+      );
+      break;
+    }
+    case "sltiu": {
+      const [rt, rs, immediate] = operands;
+      registers[rt] =
+        unsigned(registers[rs]) < unsigned(parseImmediate(immediate)) ? 1 : 0;
+      console.log(
+        `SLTIU: ${rs}(${registers[rs]}) < ${immediate} = ${registers[rt]}, guardado en ${rt}`
+      );
+      break;
+    }
+    case "andi": {
+      const [rt, rs, immediate] = operands;
+      registers[rt] = registers[rs] & parseImmediate(immediate);
+      console.log(
+        `ANDI: ${rs}(${registers[rs]}) & ${immediate} = ${registers[rt]}, guardado en ${rt}`
+      );
+      break;
+    }
+    case "ori": {
+      const [rt, rs, immediate] = operands;
+      registers[rt] = registers[rs] | parseImmediate(immediate);
+      console.log(
+        `ORI: ${rs}(${registers[rs]}) | ${immediate} = ${registers[rt]}, guardado en ${rt}`
+      );
+      break;
+    }
+    case "xori": {
+      const [rt, rs, immediate] = operands;
+      registers[rt] = registers[rs] ^ parseImmediate(immediate);
+      console.log(
+        `XORI: ${rs}(${registers[rs]}) ^ ${immediate} = ${registers[rt]}, guardado en ${rt}`
+      );
+      break;
+    }
+    case "lui": {
+      const [rt, immediate] = operands;
+      registers[rt] = parseImmediate(immediate) << 16;
+      console.log(`LUI: Cargando ${immediate} << 16 en ${rt}`);
+      break;
+    }
 
     default: {
       setErrorMessage(``);
