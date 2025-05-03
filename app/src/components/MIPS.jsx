@@ -42,8 +42,9 @@ const initialRegisters = {
   ra: 0,
 };
 
-const initialMemory = Array.from({ length: 32 }).reduce(
-  (acc, curr, i) => ({ ...acc, [i]: 0 }),
+// Inicializar la memoria con 256 posiciones con valor 0
+const initialMemory = Array.from({ length: 256 }).reduce(
+  (acc, _, i) => ({ ...acc, [i]: 0 }),
   {}
 );
 
@@ -59,6 +60,10 @@ const MIPS = () => {
   const [errorMessage, setErrorMessage] = useState("");
 
   const updateTables = (newRegisters, newMemory) => {
+    console.log("Actualizando tablas:", {
+      registers: newRegisters,
+      memory: newMemory,
+    });
     setRegisters(newRegisters);
     setMemory(newMemory);
   };
@@ -83,6 +88,7 @@ const MIPS = () => {
         pc,
         setErrorMessage
       );
+
       if (newPC !== undefined) {
         pc = newPC;
       } else {
@@ -96,6 +102,8 @@ const MIPS = () => {
   const stepMIPS = () => {
     const instructions = mipsInput.trim().split("\n");
     if (PC >= instructions.length) return;
+
+    // Guardar estado actual para step back
     setHistory([
       ...history,
       { PC, registers: { ...registers }, memory: { ...memory } },
@@ -103,6 +111,7 @@ const MIPS = () => {
 
     const newRegisters = { ...registers };
     const newMemory = { ...memory };
+
     const newPC = executeMIPSInstruction(
       instructions[PC],
       newRegisters,
@@ -112,7 +121,7 @@ const MIPS = () => {
     );
 
     if (newPC !== undefined) {
-      console.log(newPC);
+      console.log(`Salto a PC: ${newPC}`);
       setPC(newPC);
     } else {
       setPC(PC + 1);
@@ -122,7 +131,7 @@ const MIPS = () => {
   };
 
   const stepBackMIPS = () => {
-    if (PC === 0) return;
+    if (PC === 0 || history.length === 0) return;
 
     const lastHistoryIndex = history.length - 1;
     const lastState = history[lastHistoryIndex];
@@ -140,6 +149,7 @@ const MIPS = () => {
     setHistory([]);
     setRegisters(initialRegisters);
     setMemory(initialMemory);
+    setErrorMessage("");
   };
 
   return (
@@ -203,25 +213,43 @@ function executeMIPSInstruction(
     .filter(Boolean);
   const operands = operandsRaw.map((op) => op.trim());
 
-  switch (op) {
+  console.log(`Ejecutando: ${op} con operandos:`, operands);
+
+  switch (op.toLowerCase()) {
+    // Operaciones aritméticas básicas
     case "add": {
       const [rd, rs, rt] = operands;
       const result = (registers[rs] || 0) + (registers[rt] || 0);
       if (checkOverflow(result)) {
         setErrorMessage(
-          `Overflow detected during ADD operation at instruction ${PC}.`
+          `Overflow detectado durante ADD operation en instrucción ${PC}.`
         );
-        console.error("Overflow detected in addition operation.");
-        //registers[rd] = 0;
-        registers[rd] = result;
+        console.error("Overflow detectado en operación add.");
+        registers[rd] = 0;
       } else {
         registers[rd] = result;
+        console.log(
+          `ADD: ${rs}(${registers[rs]}) + ${rt}(${registers[rt]}) = ${result}, guardado en ${rd}`
+        );
       }
       break;
     }
     case "addu": {
       const [rd, rs, rt] = operands;
-      registers[rd] = (registers[rs] || 0) + (registers[rt] || 0);
+      const result = (registers[rs] || 0) + (registers[rt] || 0);
+
+      if (checkOverflow(result)) {
+        setErrorMessage(
+          `Overflow detectado durante ADDU operation en instrucción ${PC}.`
+        );
+        console.error("Overflow detectado en operación addu.");
+        registers[rd] = 0;
+      } else {
+        registers[rd] = result;
+        console.log(
+          `ADDU: ${rs}(${registers[rs]}) + ${rt}(${registers[rt]}) = ${result}, guardado en ${rd}`
+        );
+      }
       break;
     }
     case "sub": {
@@ -229,145 +257,71 @@ function executeMIPSInstruction(
       const result = (registers[rs] || 0) - (registers[rt] || 0);
       if (checkOverflow(result)) {
         setErrorMessage(
-          `Overflow detected during SUB operation at instruction ${PC}.`
+          `Overflow detectado durante SUB operation en instrucción ${PC}.`
         );
-        console.error("Overflow detected in subtraction operation.");
+        console.error("Overflow detectado en operación de resta.");
         registers[rd] = 0;
-        break;
       } else {
         registers[rd] = result;
-        break;
+        console.log(`SUB: resultado en ${rd} = ${registers[rd]}`);
       }
+      break;
     }
     case "subu": {
       const [rd, rs, rt] = operands;
-      registers[rd] = (registers[rs] || 0) - (registers[rt] || 0);
-      break;
-    }
-    case "slt": {
-      const [rd, rs, rt] = operands;
-      registers[rd] = registers[rs] < registers[rt] ? 1 : 0;
-      break;
-    }
-    case "sltu": {
-      const [rd, rs, rt] = operands;
-      registers[rd] = unsigned(registers[rs]) < unsigned(registers[rt]) ? 1 : 0;
-      break;
-    }
-    case "and": {
-      const [rd, rs, rt] = operands;
-      registers[rd] = (registers[rs] || 0) & (registers[rt] || 0);
-      break;
-    }
-    case "or": {
-      const [rd, rs, rt] = operands;
-      registers[rd] = (registers[rs] || 0) | (registers[rt] || 0);
-      break;
-    }
-    case "nor": {
-      const [rd, rs, rt] = operands;
-      registers[rd] = ~(registers[rs] | registers[rt]);
-      break;
-    }
-    case "xor": {
-      const [rd, rs, rt] = operands;
-      registers[rd] = (registers[rs] || 0) ^ (registers[rt] || 0);
-      break;
-    }
-    case "sll": {
-      const [rd, rt, shamt] = operands;
-      console.log("SLL - Operands:", { rd, rt, shamt });
-      console.log("Before SLL - registers[rd]:", registers[rd]);
-
-      // Validar registros y shift amount
-      if (!registers.hasOwnProperty(rd) || !registers.hasOwnProperty(rt)) {
-        console.error("Invalid register in sll instruction");
-        break;
-      }
-
-      const shiftAmount = parseInt(shamt);
-      if (isNaN(shiftAmount) || shiftAmount < 0 || shiftAmount > 31) {
-        console.error("Invalid shift amount in sll instruction");
-        break;
-      }
-
-      // No modificar el registro $zero
-      if (rd === "zero") break;
-
-      // Realizar el desplazamiento lógico a la izquierda
-      registers[rd] = (registers[rt] || 0) << shiftAmount;
-      console.log("After SLL - registers[rd]:", registers[rd]);
-      break;
-    }
-    case "srl": {
-      const [rd, rt, shamt] = operands;
-      registers[rd] = registers[rt] >>> parseInt(shamt);
-      console.log("After SLL - registers[rt]:", registers[rt]);
-      break;
-    }
-    case "sra": {
-      const [rd, rt, shamt] = operands;
-      registers[rd] = registers[rt] >> parseInt(shamt);
-      console.log("After SLL - registers[rt]:", registers[rt]);
-      break;
-    }
-    case "jr": {
-      const [rs] = operands;
-      console.log("After SLL - registers[rd]:", registers[rd]);
-      return registers[rs] || 0;
-    }
-
-    case "addi": {
-      const [rt, rs, immediate] = operands;
-      const result = (registers[rs] || 0) + parseImmediate(immediate);
+      const result = (registers[rs] || 0) - (registers[rt] || 0);
       if (checkOverflow(result)) {
         setErrorMessage(
-          `Overflow detected during ADDI operation at instruction ${PC}.`
+          `Overflow detectado durante SUBU operation en instrucción ${PC}.`
         );
-        console.error("Overflow detected in ADDI operation.");
-        registers[rt] = 0; // opcional: podrías no modificarlo si prefieres
-        break;
+        console.error("Overflow detectado en operación de resta.");
+        registers[rd] = 0;
+      } else {
+        registers[rd] = result;
+        console.log(`SUBU: resultado en ${rd} = ${registers[rd]}`);
+      }
+      break;
+    }
+
+    // Operaciones aritméticas inmediatas
+    case "addi": {
+      const [rt, rs, immediate] = operands;
+      const imm = parseImmediate(immediate);
+      const result = (registers[rs] || 0) + imm;
+      if (checkOverflow(result)) {
+        setErrorMessage(
+          `Overflow detectado durante ADDI operation en instrucción ${PC}.`
+        );
+        console.error("Overflow detectado en operación ADDI.");
+        registers[rt] = 0;
       } else {
         registers[rt] = result;
-        break;
+        console.log(
+          `ADDI: ${rs}(${registers[rs]}) + ${imm} = ${result}, guardado en ${rt}`
+        );
       }
+      break;
     }
     case "addiu": {
       const [rt, rs, immediate] = operands;
-      registers[rt] = (registers[rs] || 0) + parseImmediate(immediate);
+      const imm = parseImmediate(immediate);
+      const result = (registers[rs] || 0) + imm;
+      if (checkOverflow(result)) {
+        setErrorMessage(
+          `Overflow detectado durante ADDIU operation en instrucción ${PC}.`
+        );
+        console.error("Overflow detectado en operación ADDIU.");
+        registers[rt] = 0;
+      } else {
+        registers[rt] = result;
+        console.log(
+          `ADDIU: ${rs}(${registers[rs]}) + ${imm} = ${result}, guardado en ${rt}`
+        );
+      }
       break;
     }
-    case "andi": {
-      const [rt, rs, immediate] = operands;
-      registers[rt] = (registers[rs] || 0) & parseImmediate(immediate);
-      break;
-    }
-    case "ori": {
-      const [rt, rs, immediate] = operands;
-      registers[rt] = (registers[rs] || 0) | parseImmediate(immediate);
-      break;
-    }
-    case "xori": {
-      const [rt, rs, immediate] = operands;
-      registers[rt] = (registers[rs] || 0) ^ parseImmediate(immediate);
-      break;
-    }
-    case "lui": {
-      const [rt, immediate] = operands;
-      registers[rt] = parseImmediate(immediate) << 16;
-      break;
-    }
-    case "slti": {
-      const [rt, rs, immediate] = operands;
-      registers[rt] = registers[rs] < parseImmediate(immediate) ? 1 : 0;
-      break;
-    }
-    case "sltiu": {
-      const [rt, rs, immediate] = operands;
-      registers[rt] =
-        unsigned(registers[rs]) < unsigned(parseImmediate(immediate)) ? 1 : 0;
-      break;
-    }
+
+    // Operaciones de acceso a memoria - word
     case "lw": {
       const [rt, offsetBase] = operands;
       const match = offsetBase.match(/(-?\d+)\((\w+)\)/);
@@ -375,7 +329,24 @@ function executeMIPSInstruction(
         const offset = parseInt(match[1]);
         const base = match[2];
         const address = (registers[base] || 0) + offset;
-        registers[rt] = memory[address] ?? 0;
+
+        if (address < 0 || address >= Object.keys(memory).length) {
+          setErrorMessage(
+            `Error: Acceso a dirección de memoria inválida: ${address}`
+          );
+          console.error(
+            `Error: Acceso a dirección de memoria inválida: ${address}`
+          );
+          break;
+        }
+
+        registers[rt] = memory[address] || 0;
+        console.log(
+          `LW: Cargando valor ${memory[address]} desde dirección ${address} a registro ${rt}`
+        );
+      } else {
+        setErrorMessage(`Error: Formato inválido para LW: ${offsetBase}`);
+        console.error(`Error: Formato inválido para LW: ${offsetBase}`);
       }
       break;
     }
@@ -386,22 +357,181 @@ function executeMIPSInstruction(
         const offset = parseInt(match[1]);
         const base = match[2];
         const address = (registers[base] || 0) + offset;
-        memory[address] = registers[rt] ?? 0;
+
+        if (address < 0 || address >= Object.keys(memory).length) {
+          setErrorMessage(
+            `Error: Acceso a dirección de memoria inválida: ${address}`
+          );
+          console.error(
+            `Error: Acceso a dirección de memoria inválida: ${address}`
+          );
+          break;
+        }
+
+        memory[address] = registers[rt] || 0;
+        console.log(
+          `SW: Guardando valor ${registers[rt]} en dirección ${address} desde registro ${rt}`
+        );
+      } else {
+        setErrorMessage(`Error: Formato inválido para SW: ${offsetBase}`);
+        console.error(`Error: Formato inválido para SW: ${offsetBase}`);
       }
       break;
     }
+
+    // Operaciones de acceso a memoria - byte
+    case "lb": {
+      const [rt, offsetBase] = operands;
+      const match = offsetBase.match(/(-?\d+)\((\w+)\)/);
+      if (match) {
+        const offset = parseInt(match[1]);
+        const base = match[2];
+        const address = (registers[base] || 0) + offset;
+
+        if (address < 0 || address >= Object.keys(memory).length) {
+          setErrorMessage(
+            `Error: Acceso a dirección de memoria inválida: ${address}`
+          );
+          console.error(
+            `Error: Acceso a dirección de memoria inválida: ${address}`
+          );
+          break;
+        }
+
+        // Cargar byte y extender el signo
+        let byte = memory[address] & 0xff;
+        if (byte & 0x80) {
+          // Si el bit más significativo está activo, extender signo
+          byte = byte | 0xffffff00;
+        }
+
+        registers[rt] = byte;
+        console.log(
+          `LB: Cargando byte ${byte} desde dirección ${address} a registro ${rt}`
+        );
+      } else {
+        setErrorMessage(`Error: Formato inválido para LB: ${offsetBase}`);
+        console.error(`Error: Formato inválido para LB: ${offsetBase}`);
+      }
+      break;
+    }
+    case "lbu": {
+      const [rt, offsetBase] = operands;
+      const match = offsetBase.match(/(-?\d+)\((\w+)\)/);
+      if (match) {
+        const offset = parseInt(match[1]);
+        const base = match[2];
+        const address = (registers[base] || 0) + offset;
+
+        if (address < 0 || address >= Object.keys(memory).length) {
+          setErrorMessage(
+            `Error: Acceso a dirección de memoria inválida: ${address}`
+          );
+          console.error(
+            `Error: Acceso a dirección de memoria inválida: ${address}`
+          );
+          break;
+        }
+
+        // Cargar byte sin extender el signo
+        const byte = memory[address] & 0xff;
+
+        registers[rt] = byte;
+        console.log(
+          `LBU: Cargando byte sin signo ${byte} desde dirección ${address} a registro ${rt}`
+        );
+      } else {
+        setErrorMessage(`Error: Formato inválido para LBU: ${offsetBase}`);
+        console.error(`Error: Formato inválido para LBU: ${offsetBase}`);
+      }
+      break;
+    }
+    case "sb": {
+      const [rt, offsetBase] = operands;
+      const match = offsetBase.match(/(-?\d+)\((\w+)\)/);
+      if (match) {
+        const offset = parseInt(match[1]);
+        const base = match[2];
+        const address = (registers[base] || 0) + offset;
+
+        if (address < 0 || address >= Object.keys(memory).length) {
+          setErrorMessage(
+            `Error: Acceso a dirección de memoria inválida: ${address}`
+          );
+          console.error(
+            `Error: Acceso a dirección de memoria inválida: ${address}`
+          );
+          break;
+        }
+
+        // Guardar solo el byte menos significativo
+        const byte = registers[rt] & 0xff;
+        memory[address] = byte;
+
+        console.log(
+          `SB: Guardando byte ${byte} en dirección ${address} desde registro ${rt}`
+        );
+      } else {
+        setErrorMessage(`Error: Formato inválido para SB: ${offsetBase}`);
+        console.error(`Error: Formato inválido para SB: ${offsetBase}`);
+      }
+      break;
+    }
+
+    // Instrucciones de salto condicional
     case "beq": {
       const [rs, rt, offset] = operands;
       if (registers[rs] === registers[rt]) {
-        return PC + parseImmediate(offset);
+        // El salto debe ser PC + 1 (siguiente instrucción) + offset - 1 (ajuste)
+        const newPC = PC + 1 + parseImmediate(offset);
+        console.log(`BEQ: Salto a PC ${newPC} (${rs} === ${rt})`);
+        return newPC;
       }
+      console.log(`BEQ: No se realizó salto (${rs} !== ${rt})`);
       break;
     }
     case "bne": {
       const [rs, rt, offset] = operands;
       if (registers[rs] !== registers[rt]) {
-        return PC + parseImmediate(offset);
+        const newPC = PC + 1 + parseImmediate(offset);
+        console.log(`BNE: Salto a PC ${newPC} (${rs} !== ${rt})`);
+        return newPC;
       }
+      console.log(`BNE: No se realizó salto (${rs} === ${rt})`);
+      break;
+    }
+
+    // Instrucciones nuevas de salto
+    case "bgtz": {
+      const [rs, offset] = operands;
+      if (registers[rs] > 0) {
+        const newPC = PC + 1 + parseImmediate(offset);
+        console.log(`BGTZ: Salto a PC ${newPC} (${rs} > 0)`);
+        return newPC;
+      }
+      console.log(`BGTZ: No se realizó salto (${rs} <= 0)`);
+      break;
+    }
+
+    case "bgez": {
+      const [rs, offset] = operands;
+      if (registers[rs] >= 0) {
+        const newPC = PC + 1 + parseImmediate(offset);
+        console.log(`BGEZ: Salto a PC ${newPC} (${rs} >= 0)`);
+        return newPC;
+      }
+      console.log(`BGEZ: No se realizó salto (${rs} < 0)`);
+      break;
+    }
+
+    case "bltz": {
+      const [rs, offset] = operands;
+      if (registers[rs] < 0) {
+        const newPC = PC + 1 + parseImmediate(offset);
+        console.log(`BLTZ: Salto a PC ${newPC} (${rs} < 0)`);
+        return newPC;
+      }
+      console.log(`BLTZ: No se realizó salto (${rs} >= 0)`);
       break;
     }
 
@@ -417,7 +547,8 @@ function executeMIPSInstruction(
     }
 
     default: {
-      console.error("Unsupported operation:", op);
+      setErrorMessage(``);
+      console.error(``);
       break;
     }
   }
@@ -426,7 +557,7 @@ function executeMIPSInstruction(
 // Funciones auxiliares
 function parseImmediate(value) {
   if (typeof value === "string" && value.startsWith("0x")) {
-    return parseInt(value, 16);
+    return parseInt(value.substring(2), 16);
   }
   return parseInt(value, 10);
 }
