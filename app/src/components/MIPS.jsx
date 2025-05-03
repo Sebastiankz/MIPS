@@ -212,7 +212,8 @@ function executeMIPSInstruction(
           `Overflow detected during ADD operation at instruction ${PC}.`
         );
         console.error("Overflow detected in addition operation.");
-        registers[rd] = 0;
+        //registers[rd] = 0;
+        registers[rd] = result;
       } else {
         registers[rd] = result;
       }
