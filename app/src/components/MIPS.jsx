@@ -156,7 +156,16 @@ const MIPS = () => {
     <div>
       {errorMessage && (
         <div
-          style={{ color: "red", textAlign: "center", marginBottom: "10px" }}
+          style={{
+            position: "fixed",
+            top: "10px",
+            right: "10px",
+            backgroundColor: "rgba(255, 0, 0, 0.8)",
+            color: "white",
+            padding: "10px",
+            borderRadius: "5px",
+            zIndex: 1000,
+          }}
         >
           {errorMessage}
         </div>
@@ -222,10 +231,10 @@ function executeMIPSInstruction(
       const result = (registers[rs] || 0) + (registers[rt] || 0);
       if (checkOverflow(result)) {
         setErrorMessage(
-          `Overflow detectado durante ADD operation en instrucción ${PC}.`
+          `Overflow detectado en la instrucción: ADD ${rd}, ${rs}, ${rt}`
         );
-        console.error("Overflow detectado en operación add.");
-        registers[rd] = 0;
+        setTimeout(() => setErrorMessage(""), 3000);
+        console.error("Overflow detectado en operación: add ${rd}");
       } else {
         registers[rd] = result;
         console.log(
@@ -237,49 +246,38 @@ function executeMIPSInstruction(
     case "addu": {
       const [rd, rs, rt] = operands;
       const result = (registers[rs] || 0) + (registers[rt] || 0);
+      registers[rd] = result;
+      console.log(
+        `ADDU: ${rs}(${registers[rs]}) + ${rt}(${registers[rt]}) = ${result}, guardado en ${rd}`
+      );
 
-      if (checkOverflow(result)) {
-        setErrorMessage(
-          `Overflow detectado durante ADDU operation en instrucción ${PC}.`
-        );
-        console.error("Overflow detectado en operación addu.");
-        registers[rd] = 0;
-      } else {
-        registers[rd] = result;
-        console.log(
-          `ADDU: ${rs}(${registers[rs]}) + ${rt}(${registers[rt]}) = ${result}, guardado en ${rd}`
-        );
-      }
       break;
     }
     case "sub": {
       const [rd, rs, rt] = operands;
       const result = (registers[rs] || 0) - (registers[rt] || 0);
+
       if (checkOverflow(result)) {
         setErrorMessage(
-          `Overflow detectado durante SUB operation en instrucción ${PC}.`
+          `Overflow detectado en la instrucción: SUB ${rd}, ${rs}, ${rt}`
         );
-        console.error("Overflow detectado en operación de resta.");
-        registers[rd] = 0;
+        setTimeout(() => setErrorMessage(""), 3000);
+        console.error(
+          `Overflow detectado en la instrucción: SUB ${rd}, ${rs}, ${rt}`
+        );
       } else {
         registers[rd] = result;
-        console.log(`SUB: resultado en ${rd} = ${registers[rd]}`);
+        console.log(
+          `SUB: ${rs}(${registers[rs]}) - ${rt}(${registers[rt]}) = ${result}, guardado en ${rd}`
+        );
       }
       break;
     }
     case "subu": {
       const [rd, rs, rt] = operands;
       const result = (registers[rs] || 0) - (registers[rt] || 0);
-      if (checkOverflow(result)) {
-        setErrorMessage(
-          `Overflow detectado durante SUBU operation en instrucción ${PC}.`
-        );
-        console.error("Overflow detectado en operación de resta.");
-        registers[rd] = 0;
-      } else {
-        registers[rd] = result;
-        console.log(`SUBU: resultado en ${rd} = ${registers[rd]}`);
-      }
+      registers[rd] = result;
+      console.log(`SUBU: resultado en ${rd} = ${registers[rd]}`);
       break;
     }
 
@@ -288,12 +286,15 @@ function executeMIPSInstruction(
       const [rt, rs, immediate] = operands;
       const imm = parseImmediate(immediate);
       const result = (registers[rs] || 0) + imm;
+
       if (checkOverflow(result)) {
         setErrorMessage(
-          `Overflow detectado durante ADDI operation en instrucción ${PC}.`
+          `Overflow detectado en la instrucción: ADDI ${rt}, ${rs}, ${immediate}`
         );
-        console.error("Overflow detectado en operación ADDI.");
-        registers[rt] = 0;
+        setTimeout(() => setErrorMessage(""), 3000);
+        console.error(
+          `Overflow detectado en la instrucción: ADDI ${rt}, ${rs}, ${immediate}`
+        );
       } else {
         registers[rt] = result;
         console.log(
@@ -306,18 +307,10 @@ function executeMIPSInstruction(
       const [rt, rs, immediate] = operands;
       const imm = parseImmediate(immediate);
       const result = (registers[rs] || 0) + imm;
-      if (checkOverflow(result)) {
-        setErrorMessage(
-          `Overflow detectado durante ADDIU operation en instrucción ${PC}.`
-        );
-        console.error("Overflow detectado en operación ADDIU.");
-        registers[rt] = 0;
-      } else {
-        registers[rt] = result;
-        console.log(
-          `ADDIU: ${rs}(${registers[rs]}) + ${imm} = ${result}, guardado en ${rt}`
-        );
-      }
+      registers[rt] = result;
+      console.log(
+        `ADDIU: ${rs}(${registers[rs]}) + ${imm} = ${result}, guardado en ${rt}`
+      );
       break;
     }
 
